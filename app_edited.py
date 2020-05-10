@@ -5,6 +5,7 @@ import pandas
 from geopy.geocoders import Nominatim
 import numpy
 
+#Setting up variables for flask and connecting to database on SQL
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']='connect to DB'
 db=SQLAlchemy(app)
@@ -23,11 +24,19 @@ class Data(db.Model):
         self.email_=email_
         self.height_=height_
 
+#connecting to Nominatim, used to get longtitude and latitude data for addresses        
 geolocator=Nominatim(user_agent="geolocatorssss")
+
+#Main function of the app. 
 @app.route("/success", methods=['POST'])
 def success():
+    #uploaded file
     global file
+    
+    #file that was saved to the system when uploaded and used for the editing
     global edited_file
+    
+    #returned file for user to be able to download
     global geofile
     if request.method=='POST':
         file=request.files["file"]
@@ -35,7 +44,7 @@ def success():
         with open("uploaded"+file.filename) as f:
             edited_file=pandas.read_csv(f)
 
-
+            #Loop that uses Nominatim to add geocode information to the file
             for ad, ind in zip(edited_file["Address"], edited_file.index):
                 location = geolocator.geocode(ad)
                 edited_file.loc[ind, "Coordinates"] = str(location.latitude) + ", " + str(location.longitude)
@@ -45,9 +54,10 @@ def success():
 
 
 
-
+        #Display the table on the website
         return render_template("index.html",tables=[edited_file.to_html(classes='data')],titles=edited_file.columns.values, btn="download.html")
 
+#Allowing the user to download the edited file.
 @app.route("/download")
 def download():
     return send_file("Edited"+file.filename, attachment_filename="Edited_file.csv", as_attachment=True,cache_timeout=0)
